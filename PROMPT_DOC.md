@@ -311,5 +311,60 @@ After completing this exercise, you will understand:
 * Infrastructure as Code (IaC)
 * Cloud resource management using Terraform
 
+## Before/After Diff
+
+- # BEFORE (AI first draft — deprecated syntax, provider v3 style)
+- resource "aws_s3_bucket" "model_artifacts" {
+-   bucket = var.bucket_name
+-
+-   versioning {
+-     enabled = true
+-   }
+-
+-   server_side_encryption_configuration {
+-     rule {
+-       apply_server_side_encryption_by_default {
+-         sse_algorithm = "AES256"
+-       }
+-     }
+-   }
+-
+-   tags = {
+-     Environment = "production"
+-   }
+- }
+
++ # AFTER (manual correction — separate resources, provider v5 compatible)
++ resource "aws_s3_bucket" "model_artifacts" {
++   bucket = var.bucket_name
++   tags   = { Environment = "production", Project = "mlops-monitoring", ManagedBy = "terraform" }
++ }
++
++ resource "aws_s3_bucket_versioning" "model_artifacts" {
++   bucket = aws_s3_bucket.model_artifacts.id
++   versioning_configuration { status = "Enabled" }
++ }
++
++ resource "aws_s3_bucket_server_side_encryption_configuration" "model_artifacts" {
++   bucket = aws_s3_bucket.model_artifacts.id
++   rule {
++     apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
++   }
++ }
++
++ resource "aws_s3_bucket_public_access_block" "model_artifacts" {
++   bucket                  = aws_s3_bucket.model_artifacts.id
++   block_public_acls       = true
++   block_public_policy     = true
++   ignore_public_acls      = true
++   restrict_public_buckets = true
++ }
+
+
+## Two-Line Reflection
+What the AI got right: It correctly scaffolded the Terraform provider block, variable declarations, tagging conventions, and the full PSI drift detection logic with zero hallucinated resource names.
+
+What I had to correct manually: The initial Terraform output used nested versioning {} and server_side_encryption_configuration {} blocks inside aws_s3_bucket — a pattern removed in AWS provider v5 — requiring a split into three separate child resources.
+
 
 
