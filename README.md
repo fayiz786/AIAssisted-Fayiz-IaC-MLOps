@@ -1,63 +1,37 @@
-# MLOps Model Artifact Storage on AWS S3 using Terraform
+# Terraform-Based Cloud Resource Provisioning & Python MLOps Monitoring Stub
 
 ## Overview
 
-This project provisions a secure and production-ready Amazon S3 bucket for storing Machine Learning model artifacts using Terraform.
+This project demonstrates two core DevOps/MLOps capabilities:
 
-The solution follows Infrastructure as Code (IaC) principles and incorporates security, version control, encryption, and lifecycle management best practices commonly used in MLOps environments.
+1. **Terraform Infrastructure as Code (IaC)** for provisioning a basic AWS cloud resource.
+2. **Python-based MLOps Monitoring Stub** for monitoring model endpoint latency and detecting feature drift.
 
----
-
-## Architecture
-
-```text
-ML Training Pipeline
-        │
-        ▼
-  Model Artifact
- (model.pkl, .onnx)
-        │
-        ▼
-    Amazon S3
-        │
-        ├── Versioning Enabled
-        ├── Server-Side Encryption
-        ├── Public Access Blocked
-        └── Lifecycle Management
-                │
-                ▼
-      Glacier Instant Retrieval
-      (Old Model Versions)
-```
+The project is intended as a simple reference implementation showcasing Infrastructure as Code, cloud storage best practices, and foundational MLOps monitoring concepts.
 
 ---
 
-## Features
+## Components
 
-### Secure Storage
+### 1. Terraform Configuration
 
-* Amazon S3 bucket for model artifacts
-* Server-side encryption enabled (AES256)
-* All public access blocked
+The Terraform code provisions an Amazon S3 bucket for storing machine learning model artifacts with:
 
-### Version Control
+* Bucket Versioning
+* Server-Side Encryption (AES256)
+* Public Access Blocking
+* Lifecycle Management
+* Automated archival of older model versions to Glacier Instant Retrieval
 
-* S3 Versioning enabled
-* Preserves historical model versions
-* Supports rollback to previous model artifacts
+### 2. Python MLOps Monitoring Stub
 
-### Cost Optimization
+The monitoring script simulates a deployed ML model endpoint and performs:
 
-Lifecycle policy automatically:
-
-* Transitions non-current model versions to Glacier Instant Retrieval after 60 days
-* Deletes non-current versions after 730 days
-
-### Infrastructure as Code
-
-* Fully managed through Terraform
-* Repeatable and version-controlled deployments
-* Easy integration with CI/CD pipelines
+* Endpoint latency monitoring
+* P95 latency calculation
+* Feature drift detection using Population Stability Index (PSI)
+* Alert generation for SLA breaches and drift conditions
+* Structured logging for integration with monitoring platforms
 
 ---
 
@@ -66,246 +40,124 @@ Lifecycle policy automatically:
 ```text
 .
 ├── main.tf
-├── variables.tf      (optional)
-├── outputs.tf        (optional)
-├── terraform.tfvars  (optional)
+├── model_monitor.py
 └── README.md
 ```
 
 ---
 
-## Prerequisites
+## Terraform Features
 
-Before deploying, ensure you have:
+### Amazon S3 Model Artifact Storage
 
-* AWS Account
-* AWS CLI configured
-* Terraform v1.5 or later
-* IAM permissions for S3 resource creation
+* Secure artifact storage
+* Version history preservation
+* Cost optimization through lifecycle policies
 
-Verify installation:
+### Lifecycle Policy
 
-```bash
-terraform -version
-aws sts get-caller-identity
-```
-
----
-
-## Configuration
-
-Default values:
-
-| Variable    | Description           | Default                    |
-| ----------- | --------------------- | -------------------------- |
-| aws_region  | AWS deployment region | us-east-1                  |
-| bucket_name | S3 bucket name        | mlops-model-artifacts-prod |
-
-Example customization:
-
-```hcl
-bucket_name = "my-company-ml-models"
-aws_region  = "us-east-1"
-```
+| Condition                      | Action                            |
+| ------------------------------ | --------------------------------- |
+| Non-current version > 60 days  | Move to Glacier Instant Retrieval |
+| Non-current version > 730 days | Delete                            |
 
 ---
 
-## Deployment Steps
+## Python Monitoring Features
 
-### 1. Initialize Terraform
+### Latency Monitoring
 
-```bash
-terraform init
+Monitors endpoint response times and raises alerts when the P95 latency exceeds the configured SLA.
+
+```python
+LATENCY_SLA_MS = 300
 ```
 
-Downloads the AWS provider and initializes the working directory.
+### Feature Drift Detection
 
----
+Uses Population Stability Index (PSI) to compare baseline and current prediction distributions.
 
-### 2. Validate Configuration
-
-```bash
-terraform validate
+```python
+DRIFT_PSI_THRESHOLD = 0.2
 ```
 
-Checks Terraform syntax and configuration validity.
+### Alert Generation
 
----
-
-### 3. Review Execution Plan
-
-```bash
-terraform plan
-```
-
-Shows resources that Terraform will create.
-
----
-
-### 4. Deploy Infrastructure
-
-```bash
-terraform apply
-```
-
-Type:
-
-```text
-yes
-```
-
-to confirm deployment.
-
----
-
-## Verify Deployment
-
-List the created bucket:
-
-```bash
-aws s3 ls
-```
-
-View bucket versioning:
-
-```bash
-aws s3api get-bucket-versioning \
-  --bucket mlops-model-artifacts-prod
-```
-
-Expected output:
+Example:
 
 ```json
 {
-  "Status": "Enabled"
+  "alert_type": "DRIFT",
+  "severity": "WARNING",
+  "message": "Feature confidence PSI exceeded threshold"
 }
 ```
 
 ---
 
-## Lifecycle Management
+## Usage
 
-The bucket automatically manages old model versions.
-
-### Current Version
-
-```text
-model-v3.pkl
-```
-
-Stored in:
-
-```text
-S3 Standard
-```
-
-### Non-Current Versions
-
-```text
-model-v1.pkl
-model-v2.pkl
-```
-
-After 60 days:
-
-```text
-Glacier Instant Retrieval
-```
-
-After 730 days:
-
-```text
-Automatically Deleted
-```
-
-This helps reduce storage costs while preserving rollback capability.
-
----
-
-## Outputs
-
-Terraform provides the following outputs:
-
-### Bucket Name
+### Deploy Infrastructure
 
 ```bash
-terraform output bucket_name
+terraform init
+terraform plan
+terraform apply
 ```
 
-### Bucket ARN
+### Run Monitoring Stub
 
 ```bash
-terraform output bucket_arn
+python model_monitor.py
 ```
 
 ---
 
-## Example Usage
+## Sample Workflow
 
-Upload a model artifact:
-
-```bash
-aws s3 cp model.pkl s3://mlops-model-artifacts-prod/
+```text
+Terraform
+    │
+    ▼
+Provision S3 Bucket
+    │
+    ▼
+Store Model Artifacts
+    │
+    ▼
+Deploy Model Endpoint
+    │
+    ▼
+Run model_monitor.py
+    │
+    ├── Monitor Latency
+    ├── Detect Drift
+    └── Generate Alerts
 ```
-
-Upload a new version:
-
-```bash
-aws s3 cp model_v2.pkl s3://mlops-model-artifacts-prod/model.pkl
-```
-
-Because versioning is enabled, previous versions remain available.
 
 ---
 
-## Security Controls
+## Technologies Used
 
-Implemented controls include:
-
-* S3 Public Access Block
-* Server-Side Encryption
-* Versioning Protection
-* Lifecycle Governance
-* Infrastructure as Code
+* Terraform
+* AWS S3
+* Python
+* Infrastructure as Code (IaC)
+* MLOps Monitoring
+* Population Stability Index (PSI)
 
 ---
 
 ## Future Enhancements
 
-Potential improvements for production environments:
-
-* AWS KMS Encryption (SSE-KMS)
-* Cross-Region Replication
-* S3 Object Lock
-* CloudTrail Data Events
-* EventBridge Notifications
-* Integration with MLflow
-* CI/CD Deployment Pipeline
-* Automated Compliance Checks
+* CloudWatch Integration
+* Slack/PagerDuty Notifications
+* Prometheus Metrics
+* Grafana Dashboards
+* AWS KMS Encryption
+* MLflow Integration
 
 ---
-
-## Cleanup
-
-To remove all infrastructure:
-
-```bash
-terraform destroy
-```
-
-Confirm with:
-
-```text
-yes
-```
-
-Terraform will delete all managed resources.
-
----
-
-## Author
-
-Created as an MLOps Infrastructure as Code demonstration using Terraform and AWS S3.
 
 ## License
 
